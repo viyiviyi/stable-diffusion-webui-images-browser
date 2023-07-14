@@ -48,8 +48,9 @@ except ImportError:
 try:
     import ImageReward
     image_reward_installed = True
-except ImportError:
+except ImportError as e:
     print("Image Browser: ImageReward is not installed, cannot be used.")
+    print(e)
     image_reward_installed = False
 
 # Force reload wib_db, as it doesn't get reloaded otherwise, if an extension update is started from webui
