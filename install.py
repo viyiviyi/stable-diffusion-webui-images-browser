@@ -6,12 +6,13 @@ if not launch.is_installed("send2trash"):
 
 try:
     import ImageReward
-    import dataset
+    import datasets
     import dill
     import diffusers
     import multiprocessing
     import pyarrow
     import xxhash
-except ImportError as e:
+except (ImportError, ModuleNotFoundError) as e:
+    #print(e)
     req_IR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "req_IR.txt")
     launch.run_pip(f'install -r "{req_IR}" --no-deps image-reward', 'ImageReward requirement for image browser')
