@@ -593,7 +593,7 @@ def exif_delete_0(maint_wait):
 
     return maint_wait, maint_last_msg
 
-def exif_update_dirs(maint_update_dirs_from, maint_update_dirs_to, maint_wait):
+def exif_update_dirs(maint_update_dirs_path_recorder, maint_update_dirs_exif_data, maint_update_dirs_ranking, maint_update_dirs_from, maint_update_dirs_to, maint_wait):
     global exif_cache, aes_cache
     if maint_update_dirs_from == "":
         maint_last_msg = "From is empty"
@@ -604,12 +604,15 @@ def exif_update_dirs(maint_update_dirs_from, maint_update_dirs_to, maint_wait):
         maint_update_dirs_to = os.path.realpath(maint_update_dirs_to)
         rows = 0
         conn, cursor = wib_db.transaction_begin()
-        wib_db.update_path_recorder_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
-        rows = rows + cursor.rowcount
-        wib_db.update_exif_data_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
-        rows = rows + cursor.rowcount
-        wib_db.update_ranking_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
-        rows = rows + cursor.rowcount
+        if maint_update_dirs_path_recorder:
+            wib_db.update_path_recorder_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
+            rows = rows + cursor.rowcount
+        if maint_update_dirs_exif_data:
+            wib_db.update_exif_data_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
+            rows = rows + cursor.rowcount
+        if maint_update_dirs_ranking:
+            wib_db.update_ranking_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
+            rows = rows + cursor.rowcount
         wib_db.transaction_end(conn, cursor)
         if rows == 0:
             maint_last_msg = "No rows updated"
@@ -1324,8 +1327,14 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
         with gr.Column(scale=10):
             gr.HTML(visible=False)
     with gr.Row(visible=maint): 
-        with gr.Column(scale=1):
+        with gr.Column(scale=2):
             maint_update_dirs = gr.Button(value="Update directory names in database")
+        with gr.Column(scale=2, min_width=40):
+            maint_update_dirs_path_recorder = gr.Checkbox(value=True, label="path_recorder")
+        with gr.Column(scale=2, min_width=40):
+            maint_update_dirs_exif_data = gr.Checkbox(value=True, label="exif_data")
+        with gr.Column(scale=2, min_width=40):
+            maint_update_dirs_ranking = gr.Checkbox(value=True, label="ranking")
         with gr.Column(scale=10):
             maint_update_dirs_from = gr.Textbox(label="From (full path)")
         with gr.Column(scale=10):
@@ -1472,7 +1481,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
     )
     maint_update_dirs.click(
         fn=exif_update_dirs,
-        inputs=[maint_update_dirs_from, maint_update_dirs_to, maint_wait],
+        inputs=[maint_update_dirs_path_recorder, maint_update_dirs_exif_data, maint_update_dirs_ranking, maint_update_dirs_from, maint_update_dirs_to, maint_wait],
         outputs=[maint_wait, maint_last_msg],
         show_progress=True
     )
