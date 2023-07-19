@@ -621,6 +621,15 @@ def exif_update_dirs(maint_update_dirs_path_recorder, maint_update_dirs_exif_dat
 
     return maint_wait, maint_last_msg
 
+def recreate_hash(maint_wait):
+    version = str(db_version)
+    conn, cursor = wib_db.transaction_begin()
+    wib_db.migrate_filehash(cursor, version)
+    wib_db.transaction_end(conn, cursor)
+    maint_last_msg = "Hashes recreated"
+
+    return maint_wait, maint_last_msg
+
 def reapply_ranking(path_recorder, maint_wait):
     dirs = {}
 
@@ -1341,6 +1350,11 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
             maint_update_dirs_to = gr.Textbox(label="to (full path)")
     with gr.Row(visible=maint): 
         with gr.Column(scale=1):
+            maint_recreate_hash = gr.Button(value="Recreate hash for existing files")
+        with gr.Column(scale=10):
+            gr.HTML(visible=False)
+    with gr.Row(visible=maint): 
+        with gr.Column(scale=1):
             maint_reapply_ranking = gr.Button(value="Reapply ranking after moving files")
         with gr.Column(scale=10):
             gr.HTML(visible=False)
@@ -1482,6 +1496,12 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
     maint_update_dirs.click(
         fn=exif_update_dirs,
         inputs=[maint_update_dirs_path_recorder, maint_update_dirs_exif_data, maint_update_dirs_ranking, maint_update_dirs_from, maint_update_dirs_to, maint_wait],
+        outputs=[maint_wait, maint_last_msg],
+        show_progress=True
+    )
+    maint_recreate_hash.click(
+        fn=recreate_hash,
+        inputs=[maint_wait],
         outputs=[maint_wait, maint_last_msg],
         show_progress=True
     )

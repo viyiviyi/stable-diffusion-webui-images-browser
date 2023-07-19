@@ -270,7 +270,8 @@ def migrate_filehash(cursor, version):
         if os.path.exists(file):
             hash = get_hash(file)
             cursor.execute('''
-            INSERT INTO filehash (file, hash)
+            INSERT OR REPLACE
+            INTO filehash (file, hash)
             VALUES (?, ?)
             ''', (file, hash))
 
