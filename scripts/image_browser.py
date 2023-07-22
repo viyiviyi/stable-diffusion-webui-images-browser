@@ -47,9 +47,11 @@ except ImportError:
 
 try:
     import ImageReward
+    import pyarrow._s3fs
+    pyarrow._s3fs.finalize_s3()
     image_reward_installed = True
 except ImportError as e:
-    print("Image Browser: ImageReward is not installed, cannot be used.")
+    print("Image Browser: ImageReward components are not installed, cannot be used.")
     print(e)
     image_reward_installed = False
 
