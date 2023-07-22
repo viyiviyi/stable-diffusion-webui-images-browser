@@ -658,7 +658,7 @@ def reapply_ranking(path_recorder, maint_wait):
                 if ranking_by_name is not None:
                     hash = wib_db.get_hash(file)
                     (alternate_file, alternate_ranking) = ranking_by_name
-                    if alternate_ranking is not None:
+                    if alternate_ranking is not None and alternate_hash is not None:
                         (alternate_hash,) = alternate_hash
                     # Does the found filename's file have no hash or the same hash?
                     if alternate_hash is None or hash == alternate_hash:
