@@ -18,7 +18,6 @@ Please be aware that when scanning a directory for the first time, the png-cache
 
 ## Recent updates
 - "All"-tab showing all the images from all tabs combined
-- Image Reward scoring
 - Size tooltip for thumbnails
 - Optimized images in the thumbnail interface
 - Send to ControlNet

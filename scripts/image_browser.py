@@ -45,16 +45,6 @@ except ImportError:
     print("Image Browser: send2trash is not installed. recycle bin cannot be used.")
     send2trash_installed = False
 
-try:
-    import ImageReward
-    import pyarrow._s3fs
-    pyarrow._s3fs.finalize_s3()
-    image_reward_installed = True
-except ImportError as e:
-    print("Image Browser: ImageReward components are not installed, cannot be used.")
-    print(e)
-    image_reward_installed = False
-
 # Force reload wib_db, as it doesn't get reloaded otherwise, if an extension update is started from webui
 importlib.reload(wib_db)
 
@@ -82,7 +72,6 @@ openoutpaint = False
 controlnet = False
 js_dummy_return = None
 log_file = os.path.join(scripts.basedir(), "image_browser.log")
-image_reward_model = None
 
 db_version = wib_db.check()
 
@@ -509,7 +498,7 @@ def cache_exif(fileinfos):
                     wib_db.update_exif_data(conn, fi_info[0], allExif)
                     new_exif = new_exif + 1
 
-                    m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", allExif)
+                    m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", allExif, flags=re.IGNORECASE)
                     if m:
                         aes_value = m.group(1)
                     else:
@@ -528,7 +517,7 @@ def cache_exif(fileinfos):
                         wib_db.update_exif_data_by_key(conn, fi_info[0], geninfo)
                         new_exif = new_exif + 1
 
-                        m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", geninfo)
+                        m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", geninfo, flags=re.IGNORECASE)
                         if m:
                             aes_value = m.group(1)
                         else:
@@ -729,7 +718,7 @@ def exif_search(needle, haystack, use_regex, case_sensitive):
             found = True
     return found
 
-def get_all_images(dir_name, sort_by, sort_order, keyword, tab_base_tag_box, img_path_depth, ranking_filter, ranking_filter_min, ranking_filter_max, aes_filter_min, aes_filter_max, score_type, exif_keyword, negative_prompt_search, use_regex, case_sensitive):
+def get_all_images(dir_name, sort_by, sort_order, keyword, tab_base_tag_box, img_path_depth, ranking_filter, ranking_filter_min, ranking_filter_max, aes_filter_min, aes_filter_max, exif_keyword, negative_prompt_search, use_regex, case_sensitive):
     global current_depth
     logger.debug("get_all_images")
     current_depth = 0
@@ -798,7 +787,7 @@ def get_all_images(dir_name, sort_by, sort_order, keyword, tab_base_tag_box, img
             except ValueError:
                 aes_filter_max_num = sys.float_info.max
 
-            fileinfos = wib_db.filter_aes(cursor, fileinfos, aes_filter_min_num, aes_filter_max_num, score_type)
+            fileinfos = wib_db.filter_aes(cursor, fileinfos, aes_filter_min_num, aes_filter_max_num)
             filenames = [finfo[0] for finfo in fileinfos]   
         if ranking_filter != "All":
             ranking_filter_min_num = 1
@@ -856,7 +845,7 @@ def get_all_images(dir_name, sort_by, sort_order, keyword, tab_base_tag_box, img
                     sort_values[k] = match.group().strip()
                 else:
                     sort_values[k] = "0"
-            if sort_by == "aesthetic_score" or sort_by == "ImageRewardScore" or sort_by == "cfg scale":
+            if sort_by == "aesthetic_score" or sort_by == "cfg scale":
                 sort_float = True
             else:
                 sort_float = False
@@ -924,17 +913,17 @@ def set_tooltip_info(image_list):
     image_browser_img_info_json = json.dumps(image_browser_img_info)
     return image_browser_img_info_json
 
-def get_image_page(img_path, page_index, filenames, keyword, sort_by, sort_order, tab_base_tag_box, img_path_depth, ranking_filter, ranking_filter_min, ranking_filter_max, aes_filter_min, aes_filter_max, score_type, exif_keyword, negative_prompt_search, use_regex, case_sensitive, image_reward_button):
+def get_image_page(img_path, page_index, filenames, keyword, sort_by, sort_order, tab_base_tag_box, img_path_depth, ranking_filter, ranking_filter_min, ranking_filter_max, aes_filter_min, aes_filter_max, exif_keyword, negative_prompt_search, use_regex, case_sensitive):
     logger.debug("get_image_page")
     if img_path == "":
-        return [], page_index, [],  "", "",  "", 0, "", None, "", "[]", image_reward_button
+        return [], page_index, [],  "", "",  "", 0, "", None, "", "[]"
 
     # Set temp_dir from webui settings, so gradio uses it
     if shared.opts.temp_dir != "":
         tempfile.tempdir = shared.opts.temp_dir
         
     img_path, _ = pure_path(img_path)
-    filenames = get_all_images(img_path, sort_by, sort_order, keyword, tab_base_tag_box, img_path_depth, ranking_filter, ranking_filter_min, ranking_filter_max, aes_filter_min, aes_filter_max, score_type, exif_keyword, negative_prompt_search, use_regex, case_sensitive)
+    filenames = get_all_images(img_path, sort_by, sort_order, keyword, tab_base_tag_box, img_path_depth, ranking_filter, ranking_filter_min, ranking_filter_max, aes_filter_min, aes_filter_max, exif_keyword, negative_prompt_search, use_regex, case_sensitive)
     page_index = int(page_index)
     length = len(filenames)
     max_page_index = math.ceil(length / num_of_imgs_per_page)
@@ -1089,30 +1078,6 @@ def update_ranking(img_file_name, ranking_current, ranking, img_file_info):
         if opts.image_browser_ranking_pnginfo and any(img_file_name.endswith(ext) for ext in image_ext_list):
             img_file_info = update_exif(img_file_name, "Ranking", ranking)
     return ranking, None, img_file_info
-
-def generate_image_reward(filenames, turn_page_switch, aes_filter_min, aes_filter_max):
-    global image_reward_model
-    if image_reward_model is None:
-        image_reward_model = ImageReward.load("ImageReward-v1.0")
-    conn, cursor = wib_db.transaction_begin()
-    for filename in filenames:
-        saved_image_reward_score, saved_image_reward_prompt = wib_db.select_image_reward_score(cursor, filename)
-        if saved_image_reward_score is None and saved_image_reward_prompt is not None:
-            try:
-                with torch.no_grad():
-                    image_reward_score = image_reward_model.score(saved_image_reward_prompt, filename)
-                image_reward_score = f"{image_reward_score:.2f}"
-                try:
-                    logger.warning(f"Generated ImageRewardScore: {image_reward_score} for {filename}")
-                except UnicodeEncodeError:
-                    pass
-                wib_db.update_image_reward_score(cursor, filename, image_reward_score)
-                if any(filename.endswith(ext) for ext in image_ext_list):
-                    img_file_info = update_exif(filename, "ImageRewardScore", image_reward_score)
-            except UnidentifiedImageError as e:
-                logger.warning(f"UnidentifiedImageError: {e}")
-    wib_db.transaction_end(conn, cursor)
-    return -turn_page_switch, aes_filter_min, aes_filter_max
             
 def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
     global init, exif_cache, aes_cache, openoutpaint, controlnet, js_dummy_return
@@ -1211,7 +1176,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
 
                 with gr.Column(scale=1): 
                     with gr.Row() as sort_panel:
-                        sort_by = gr.Dropdown(value="date", choices=["path name", "date", "aesthetic_score", "ImageRewardScore", "random", "cfg scale", "steps", "seed", "sampler", "size", "model", "model hash", "ranking"], label="Sort by")
+                        sort_by = gr.Dropdown(value="date", choices=["path name", "date", "aesthetic_score", "random", "cfg scale", "steps", "seed", "sampler", "size", "model", "model hash", "ranking"], label="Sort by")
                         sort_order = ToolButton(value=down_symbol)
                     with gr.Row() as filename_search_panel:
                         filename_keyword_search = gr.Textbox(value="", label="Filename keyword search")
@@ -1233,11 +1198,6 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                             with gr.Column(scale=4, min_width=20):
                                 gr.Textbox(value="Choose Min-max to activate these controls", label="", interactive=False)
                     with gr.Box() as aesthetic_score_filter_panel:
-                        with gr.Row():
-                            with gr.Column(scale=4, min_width=20):
-                                score_type = gr.Dropdown(value=opts.image_browser_scoring_type, choices=["aesthetic_score", "ImageReward Score"], label="Scoring type", interactive=True)
-                            with gr.Column(scale=2, min_width=20):
-                                image_reward_button = gr.Button(value="Generate ImageReward Scores for all images", interactive=image_reward_installed, visible=False)
                         with gr.Row():
                             aes_filter_min = gr.Textbox(value="", label="Minimum score")
                             aes_filter_max = gr.Textbox(value="", label="Maximum score")
@@ -1584,8 +1544,8 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
     if standard_ui or others_dir:
         turn_page_switch.change(
             fn=get_image_page, 
-            inputs=[img_path, page_index, filenames, filename_keyword_search, sort_by, sort_order, tab_base_tag_box, img_path_depth, ranking_filter, ranking_filter_min, ranking_filter_max, aes_filter_min, aes_filter_max, score_type, exif_keyword_search, negative_prompt_search, use_regex, case_sensitive, image_reward_button], 
-            outputs=[filenames, page_index, image_gallery, img_file_name, img_file_time, img_file_info, visible_img_num, warning_box, hidden, image_page_list, image_browser_img_info, image_reward_button],
+            inputs=[img_path, page_index, filenames, filename_keyword_search, sort_by, sort_order, tab_base_tag_box, img_path_depth, ranking_filter, ranking_filter_min, ranking_filter_max, aes_filter_min, aes_filter_max, exif_keyword_search, negative_prompt_search, use_regex, case_sensitive], 
+            outputs=[filenames, page_index, image_gallery, img_file_name, img_file_time, img_file_info, visible_img_num, warning_box, hidden, image_page_list, image_browser_img_info],
             show_progress=opts.image_browser_show_progress
         ).then(
             fn=None,
@@ -1614,12 +1574,6 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
             outputs=[js_dummy_return],
             _js="image_browser_controlnet_send_img2img",
             show_progress=opts.image_browser_show_progress
-        )
-        image_reward_button.click(
-            fn=generate_image_reward,
-            inputs=[filenames, turn_page_switch, aes_filter_min, aes_filter_max],
-            outputs=[turn_page_switch, aes_filter_min, aes_filter_max],
-            show_progress=True
         )
 
 def run_pnginfo(image, image_path, image_file_name):
@@ -1737,7 +1691,6 @@ def on_ui_settings():
         ("image_browser_thumbnail_size", None, 200, "Size of the thumbnails (px)"),
         ("image_browser_swipe", None, False, "Swipe left/right navigates to the next image"),
         ("image_browser_img_tooltips", None, True, "Enable thumbnail tooltips"),
-        ("image_browser_scoring_type", None, "aesthetic_score", "Default scoring type", gr.Dropdown, lambda: {"choices": ["aesthetic_score", "ImageReward Score"]}),
         ("image_browser_show_progress", None, True, "Show progress indicator"),
         ("image_browser_info_add", None, False, "Show Additional Generation Info"),        
     ]

@@ -510,41 +510,6 @@ def update_ranking(file, ranking):
     
     return
 
-def select_image_reward_score(cursor, file):
-    cursor.execute('''
-    SELECT value
-    FROM exif_data
-    WHERE file = ?
-    AND key = 'ImageRewardScore'
-    ''', (file,))
-    image_reward_score = cursor.fetchone()
-    if image_reward_score is None:
-        return_image_reward_score = None
-    else:
-        (return_image_reward_score,) = image_reward_score
-    cursor.execute('''
-    SELECT value
-    FROM exif_data
-    WHERE file = ?
-    AND key = 'prompt'
-    ''', (file,))
-    image_reward_prompt = cursor.fetchone()
-    if image_reward_prompt is None:
-        return_image_reward_prompt = None
-    else:
-        (return_image_reward_prompt,) = image_reward_prompt
-    
-    return return_image_reward_score, return_image_reward_prompt
-
-def update_image_reward_score(cursor, file, image_reward_score):
-    cursor.execute('''
-    INSERT OR REPLACE
-    INTO exif_data (file, key, value)
-    VALUES (?, ?, ?)
-    ''', (file, "ImageRewardScore", image_reward_score))
-
-    return
-
 def update_path_recorder(path, depth, path_display):
     with sqlite3.connect(db_file, timeout=timeout) as conn:
         cursor = conn.cursor()
@@ -802,11 +767,8 @@ def fill_work_files(cursor, fileinfos):
 
     return
 
-def filter_aes(cursor, fileinfos, aes_filter_min_num, aes_filter_max_num, score_type):
-    if score_type == "aesthetic_score":
-        key = "aesthetic_score"
-    else:
-        key = "ImageRewardScore"
+def filter_aes(cursor, fileinfos, aes_filter_min_num, aes_filter_max_num):
+    key = "aesthetic_score"
 
     cursor.execute('''
     DELETE
