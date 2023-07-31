@@ -2,7 +2,7 @@
   justify-content: initial;
 }
 
-.thumbnails.scroll-hide.svelte-g4rw9 {
+[id^='image_browser_tab_'] .thumbnails.scroll-hide {
   justify-content: initial;
 }
 
