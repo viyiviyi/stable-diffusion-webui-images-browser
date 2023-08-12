@@ -1148,9 +1148,8 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                             first_page = gr.Button("First Page", elem_id=f"{tab.base_tag}_control_image_browser_first_page")
                         with gr.Column(scale=2, min_width=20):
                             prev_page = gr.Button("Prev Page", elem_id=f"{tab.base_tag}_control_image_browser_prev_page")
-                        with gr.Column(scale=2, min_width=20):
+                        with gr.Row(scale=2, min_width=20, elem_classes="page-index-panel"):
                             page_index = gr.Number(value=1, label="Page Index", elem_id=f"{tab.base_tag}_control_image_browser_page_index")
-                        with gr.Column(scale=1, min_width=20):
                             refresh_index_button = ToolButton(value=refresh_symbol, elem_id=f"{tab.base_tag}_control_image_browser_refresh_index")
                         with gr.Column(scale=2, min_width=20):
                             next_page = gr.Button("Next Page", elem_id=f"{tab.base_tag}_control_image_browser_next_page")
@@ -1174,30 +1173,31 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                             gr.HTML("<h3>Additional Generation Info</h3>")
                             img_file_info_add = gr.HTML()
 
-                with gr.Column(scale=1): 
-                    with gr.Row() as sort_panel:
+                with gr.Column(scale=1, elem_classes="right-column-panel"): 
+                    with gr.Row(elem_classes="sort-panel") as sort_panel:
                         sort_by = gr.Dropdown(value="date", choices=["path name", "date", "aesthetic_score", "random", "cfg scale", "steps", "seed", "sampler", "size", "model", "model hash", "ranking"], label="Sort by")
                         sort_order = ToolButton(value=down_symbol)
                     with gr.Row() as filename_search_panel:
                         filename_keyword_search = gr.Textbox(value="", label="Filename keyword search")
-                    with gr.Box() as exif_search_panel:
+                    with gr.Blocks() as exif_search_panel:
                         with gr.Row():
                                 exif_keyword_search = gr.Textbox(value="", label="EXIF keyword search")
                                 negative_prompt_search = gr.Radio(value="No", choices=["No", "Yes", "Only"], label="Search negative prompt", interactive=True)
-                        with gr.Row():
+                        with gr.Row(elem_classes="exif-search-panel"):
                                 case_sensitive = gr.Checkbox(value=False, label="case sensitive")
                                 use_regex = gr.Checkbox(value=False, label=r"regex - e.g. ^(?!.*Hires).*$")
-                    with gr.Box() as ranking_filter_panel:
+                    with gr.Blocks() as ranking_filter_panel:
                         with gr.Row():
                             ranking_filter = gr.Radio(value="All", choices=["All", "1", "2", "3", "4", "5", "None", "Min-max"], label="Ranking filter", interactive=True)
                         with gr.Row():
                             with gr.Column(scale=2, min_width=20):
-                                ranking_filter_min = gr.Textbox(value="1", label="Minimum ranking", interactive=False)
+                                ranking_filter_min = gr.Number(value="1", label="Minimum ranking", interactive=False, elem_classes="ranking-filter-input")
                             with gr.Column(scale=2, min_width=20):
-                                ranking_filter_max = gr.Textbox(value="5", label="Maximum ranking", interactive=False)
-                            with gr.Column(scale=4, min_width=20):
-                                gr.Textbox(value="Choose Min-max to activate these controls", label="", interactive=False)
-                    with gr.Box() as aesthetic_score_filter_panel:
+                                ranking_filter_max = gr.Number(value="5", label="Maximum ranking", interactive=False, elem_classes="ranking-filter-input")
+                        with gr.Row():
+                            with gr.Column():
+                                gr.HTML("<p class='no-gap-top mb-0 text-subdued'>Choose Min-max to activate these controls<p>")
+                    with gr.Blocks() as aesthetic_score_filter_panel:
                         with gr.Row():
                             aes_filter_min = gr.Textbox(value="", label="Minimum score")
                             aes_filter_max = gr.Textbox(value="", label="Maximum score")
