@@ -1174,7 +1174,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                             gr.HTML("<h3>Additional Generation Info</h3>")
                             img_file_info_add = gr.HTML()
 
-                with gr.Column(scale=1): 
+                with gr.Column(scale=1, elem_classes="right-column-panel"): 
                     with gr.Row(elem_classes="sort-panel") as sort_panel:
                         sort_by = gr.Dropdown(value="date", choices=["path name", "date", "aesthetic_score", "random", "cfg scale", "steps", "seed", "sampler", "size", "model", "model hash", "ranking"], label="Sort by")
                         sort_order = ToolButton(value=down_symbol)
@@ -1192,9 +1192,9 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                             ranking_filter = gr.Radio(value="All", choices=["All", "1", "2", "3", "4", "5", "None", "Min-max"], label="Ranking filter", interactive=True)
                         with gr.Row():
                             with gr.Column(scale=2, min_width=20):
-                                ranking_filter_min = gr.Textbox(value="1", label="Minimum ranking", interactive=False)
+                                ranking_filter_min = gr.Number(value="1", label="Minimum ranking", interactive=False, elem_classes="ranking-filter-input")
                             with gr.Column(scale=2, min_width=20):
-                                ranking_filter_max = gr.Textbox(value="5", label="Maximum ranking", interactive=False)
+                                ranking_filter_max = gr.Number(value="5", label="Maximum ranking", interactive=False, elem_classes="ranking-filter-input")
                         with gr.Row():
                             with gr.Column():
                                 gr.HTML("<p class='no-gap-top mb-0 text-subdued'>Choose Min-max to activate these controls<p>")

@@ -65,10 +65,15 @@ button[id$='_image_browser_del_img_btn'] {
 }
 
 #tab_image_browser div[id$='_control_image_browser_page_index'],
-#tab_image_browser .sort-panel .form>div {
+#tab_image_browser .right-column-panel {
   margin-top: calc(var(--body-text-size) * var(--line-sm) * -1) !important
 }
 
 #tab_image_browser .sort-panel button {
+  margin-top: calc(var(--body-text-size) * var(--line-sm));
   align-self: center
+}
+
+#tab_image_browser .ranking-filter-input input:disabled{
+  cursor: not-allowed
 }
