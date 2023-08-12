@@ -23,7 +23,7 @@ div[id$='_control_image_browser_page_index'] {
 button[id$='_control_image_browser_refresh_index']{
   align-self: center !important;
   height: 2em !important;
-  cursor: pointer;
+  cursor: pointer !important;
 }
 button[id$='_image_browser_del_img_btn'] {
   margin-top: calc(var(--body-text-size) * var(--line-sm));
