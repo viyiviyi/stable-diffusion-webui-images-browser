@@ -36,3 +36,39 @@ button[id$='_image_browser_del_img_btn'] {
   width: auto !important;
   height: auto !important;
 }
+
+#tab_image_browser .exif-search-panel {
+  margin-top: calc(var(--layout-gap) * -1);
+}
+
+#tab_image_browser .no-gap-top {
+  margin-top: calc(var(--layout-gap) * -1);
+}
+
+#tab_image_browser .mb-0 {
+  margin-bottom: 0;
+}
+
+#tab_image_browser .text-subdued {
+  color: var(--body-text-color-subdued);
+}
+
+#tab_image_browser .refresh-btn {
+  align-self: center !important
+}
+
+#tab_image_browser button[id$='_control_image_browser_first_page'],
+#tab_image_browser button[id$='_control_image_browser_prev_page'],
+#tab_image_browser button[id$='_control_image_browser_next_page'],
+#tab_image_browser button[id$='_control_image_browser_end_page'] {
+  cursor: pointer !important
+}
+
+#tab_image_browser div[id$='_control_image_browser_page_index'],
+#tab_image_browser .sort-panel .form>div {
+  margin-top: calc(var(--body-text-size) * var(--line-sm) * -1) !important
+}
+
+#tab_image_browser .sort-panel button {
+  align-self: center
+}
