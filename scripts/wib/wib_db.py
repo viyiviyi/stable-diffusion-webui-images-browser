@@ -2,7 +2,8 @@ import hashlib
 import json
 import os
 import sqlite3
-from modules import scripts
+from shutil import copy2
+from modules import scripts, shared
 from PIL import Image
 
 version = 7
@@ -12,7 +13,21 @@ aes_cache_file = os.path.join(scripts.basedir(), "aes_scores.json")
 exif_cache_file = os.path.join(scripts.basedir(), "exif_data.json")
 ranking_file = os.path.join(scripts.basedir(), "ranking.json")
 archive = os.path.join(scripts.basedir(), "archive")
-db_file = os.path.join(scripts.basedir(), "wib.sqlite3")
+source_db_file = os.path.join(scripts.basedir(), "wib.sqlite3")
+tmp_db_file = "/tmp/sd-images-browser.sqlite3"
+
+db_file = source_db_file
+if getattr(shared.cmd_opts, "image_browser_tmp_db", False):
+    db_file = tmp_db_file
+    if os.path.exists(source_db_file):
+        copy2(source_db_file, tmp_db_file)
+    elif os.path.exists(tmp_db_file):
+        os.remove(tmp_db_file)
+
+def backup_tmp_db():
+    if(db_file == tmp_db_file):
+        copy2(tmp_db_file, source_db_file)
+
 np = "Negative prompt: "
 st = "Steps: "
 timeout = 30
@@ -659,6 +674,7 @@ def transaction_begin():
 def transaction_end(conn, cursor):
     cursor.execute("COMMIT")
     conn.close()
+    backup_tmp_db()
     return
 
 def update_exif_data_by_key(cursor, file, key, value):
