@@ -82,9 +82,9 @@ def check_image_browser_active_tabs():
     last_default_tab = wib_db.get_last_default_tab()
     if last_default_tab[0] == "Others":
         # New tabs don't exist yet in image_browser_active_tabs, add them
-        conn, cursor = wib_db.transaction_begin()
-        wib_db.update_db_data(cursor, "last_default_tab", "Maintenance")
-        wib_db.transaction_end(conn, cursor)
+        with wib_db.transaction() as cursor:
+            wib_db.update_db_data(cursor, "last_default_tab", "Maintenance")
+        
         if hasattr(opts, "image_browser_active_tabs"):
             active_and_new_tabs = f"{opts.image_browser_active_tabs}, All, Maintenance"
             shared.opts.__setattr__("image_browser_active_tabs", active_and_new_tabs)
@@ -457,67 +457,48 @@ def cache_exif(fileinfos):
     cache_exif_start = time.time()
     new_exif = 0
     new_aes = 0
-    conn, cursor = wib_db.transaction_begin()
-    for fi_info in fileinfos:
-        if any(fi_info[0].endswith(ext) for ext in image_ext_list):
-            found_exif = False
-            found_aes = False
-            if fi_info[0] in exif_cache:
-                found_exif = True
-            if fi_info[0] in aes_cache:
-                found_aes = True
-            if not found_exif or not found_aes:
-                exif_cache[fi_info[0]] = "0"
-                aes_cache[fi_info[0]] = "0"
-                try:
-                    image = Image.open(fi_info[0])
-                    (_, allExif, allExif_html) = modules.extras.run_pnginfo(image)
-                    image.close()
-                except SyntaxError:
-                    allExif = False
-                    logger.warning(f"Extension and content don't match: {fi_info[0]}")
-                except UnidentifiedImageError as e:
-                    allExif = False
-                    logger.warning(f"UnidentifiedImageError: {e}")
-                except Image.DecompressionBombError as e:
-                    allExif = False
-                    logger.warning(f"DecompressionBombError: {e}: {fi_info[0]}")
-                except PermissionError as e:
-                    allExif = False
-                    logger.warning(f"PermissionError: {e}: {fi_info[0]}")
-                except FileNotFoundError as e:
-                    allExif = False
-                    logger.warning(f"FileNotFoundError: {e}: {fi_info[0]}")
-                except OSError as e:
-                    if e.errno == 22:
-                        logger.warning(f"Caught OSError with error code 22: {fi_info[0]}")
-                    else:
-                        raise
-                if allExif:
-                    exif_cache[fi_info[0]] = allExif
-                    wib_db.update_exif_data(conn, fi_info[0], allExif)
-                    new_exif = new_exif + 1
-
-                    m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", allExif, flags=re.IGNORECASE)
-                    if m:
-                        aes_value = m.group(1)
-                    else:
-                        aes_value = "0"
-                    aes_cache[fi_info[0]] = aes_value
-                    wib_db.update_exif_data_by_key(conn, fi_info[0], "aesthetic_score", aes_value)
-                    new_aes = new_aes + 1
-                else:
+    with wib_db.transaction() as cursor:
+        for fi_info in fileinfos:
+            if any(fi_info[0].endswith(ext) for ext in image_ext_list):
+                found_exif = False
+                found_aes = False
+                if fi_info[0] in exif_cache:
+                    found_exif = True
+                if fi_info[0] in aes_cache:
+                    found_aes = True
+                if not found_exif or not found_aes:
+                    exif_cache[fi_info[0]] = "0"
+                    aes_cache[fi_info[0]] = "0"
                     try:
-                        filename = os.path.splitext(fi_info[0])[0] + ".txt"
-                        geninfo = ""
-                        with open(filename) as f:
-                            for line in f:
-                                geninfo += line
-                        exif_cache[fi_info[0]] = geninfo
-                        wib_db.update_exif_data_by_key(conn, fi_info[0], geninfo)
+                        image = Image.open(fi_info[0])
+                        (_, allExif, allExif_html) = modules.extras.run_pnginfo(image)
+                        image.close()
+                    except SyntaxError:
+                        allExif = False
+                        logger.warning(f"Extension and content don't match: {fi_info[0]}")
+                    except UnidentifiedImageError as e:
+                        allExif = False
+                        logger.warning(f"UnidentifiedImageError: {e}")
+                    except Image.DecompressionBombError as e:
+                        allExif = False
+                        logger.warning(f"DecompressionBombError: {e}: {fi_info[0]}")
+                    except PermissionError as e:
+                        allExif = False
+                        logger.warning(f"PermissionError: {e}: {fi_info[0]}")
+                    except FileNotFoundError as e:
+                        allExif = False
+                        logger.warning(f"FileNotFoundError: {e}: {fi_info[0]}")
+                    except OSError as e:
+                        if e.errno == 22:
+                            logger.warning(f"Caught OSError with error code 22: {fi_info[0]}")
+                        else:
+                            raise
+                    if allExif:
+                        exif_cache[fi_info[0]] = allExif
+                        wib_db.update_exif_data(conn, fi_info[0], allExif)
                         new_exif = new_exif + 1
 
-                        m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", geninfo, flags=re.IGNORECASE)
+                        m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", allExif, flags=re.IGNORECASE)
                         if m:
                             aes_value = m.group(1)
                         else:
@@ -525,19 +506,37 @@ def cache_exif(fileinfos):
                         aes_cache[fi_info[0]] = aes_value
                         wib_db.update_exif_data_by_key(conn, fi_info[0], "aesthetic_score", aes_value)
                         new_aes = new_aes + 1
-                    except Exception:
-                        logger.warning(f"cache_exif: No EXIF in image or txt file for {fi_info[0]}")
-                        # Saved with defaults to not scan it again next time
-                        exif_cache[fi_info[0]] = "0"
-                        allExif = "0"
-                        wib_db.update_exif_data(conn, fi_info[0], allExif)
-                        new_exif = new_exif + 1
+                    else:
+                        try:
+                            filename = os.path.splitext(fi_info[0])[0] + ".txt"
+                            geninfo = ""
+                            with open(filename) as f:
+                                for line in f:
+                                    geninfo += line
+                            exif_cache[fi_info[0]] = geninfo
+                            wib_db.update_exif_data_by_key(conn, fi_info[0], geninfo)
+                            new_exif = new_exif + 1
 
-                        aes_value = "0"
-                        aes_cache[fi_info[0]] = aes_value
-                        wib_db.update_exif_data_by_key(conn, fi_info[0], "aesthetic_score", aes_value)
-                        new_aes = new_aes + 1
-    wib_db.transaction_end(conn, cursor)
+                            m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", geninfo, flags=re.IGNORECASE)
+                            if m:
+                                aes_value = m.group(1)
+                            else:
+                                aes_value = "0"
+                            aes_cache[fi_info[0]] = aes_value
+                            wib_db.update_exif_data_by_key(conn, fi_info[0], "aesthetic_score", aes_value)
+                            new_aes = new_aes + 1
+                        except Exception:
+                            logger.warning(f"cache_exif: No EXIF in image or txt file for {fi_info[0]}")
+                            # Saved with defaults to not scan it again next time
+                            exif_cache[fi_info[0]] = "0"
+                            allExif = "0"
+                            wib_db.update_exif_data(conn, fi_info[0], allExif)
+                            new_exif = new_exif + 1
+
+                            aes_value = "0"
+                            aes_cache[fi_info[0]] = aes_value
+                            wib_db.update_exif_data_by_key(conn, fi_info[0], "aesthetic_score", aes_value)
+                            new_aes = new_aes + 1
 
     if yappi_do:
         yappi.stop()
@@ -573,9 +572,8 @@ def exif_rebuild(maint_wait):
 def exif_delete_0(maint_wait):
     global exif_cache, aes_cache
     if opts.image_browser_scan_exif:
-        conn, cursor = wib_db.transaction_begin()
-        wib_db.delete_exif_0(cursor)
-        wib_db.transaction_end(conn, cursor)
+        with wib_db.transaction() as cursor:
+            wib_db.delete_exif_0(cursor)
         exif_cache = wib_db.load_exif_data(exif_cache)
         aes_cache = wib_db.load_aes_data(aes_cache)
         maint_last_msg = "Delete finished"
@@ -594,17 +592,16 @@ def exif_update_dirs(maint_update_dirs_path_recorder, maint_update_dirs_exif_dat
         maint_update_dirs_from = os.path.realpath(maint_update_dirs_from)
         maint_update_dirs_to = os.path.realpath(maint_update_dirs_to)
         rows = 0
-        conn, cursor = wib_db.transaction_begin()
-        if maint_update_dirs_path_recorder:
-            wib_db.update_path_recorder_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
-            rows = rows + cursor.rowcount
-        if maint_update_dirs_exif_data:
-            wib_db.update_exif_data_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
-            rows = rows + cursor.rowcount
-        if maint_update_dirs_ranking:
-            wib_db.update_ranking_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
-            rows = rows + cursor.rowcount
-        wib_db.transaction_end(conn, cursor)
+        with wib_db.transaction() as cursor:
+            if maint_update_dirs_path_recorder:
+                wib_db.update_path_recorder_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
+                rows = rows + cursor.rowcount
+            if maint_update_dirs_exif_data:
+                wib_db.update_exif_data_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
+                rows = rows + cursor.rowcount
+            if maint_update_dirs_ranking:
+                wib_db.update_ranking_mult(cursor, maint_update_dirs_from, maint_update_dirs_to)
+                rows = rows + cursor.rowcount
         if rows == 0:
             maint_last_msg = "No rows updated"
         else:
@@ -614,9 +611,8 @@ def exif_update_dirs(maint_update_dirs_path_recorder, maint_update_dirs_exif_dat
 
 def recreate_hash(maint_wait):
     version = str(db_version)
-    conn, cursor = wib_db.transaction_begin()
-    wib_db.migrate_filehash(cursor, version)
-    wib_db.transaction_end(conn, cursor)
+    with wib_db.transaction() as cursor:
+        wib_db.migrate_filehash(cursor, version)
     maint_last_msg = "Hashes recreated"
 
     return maint_wait, maint_last_msg
@@ -632,33 +628,31 @@ def reapply_ranking(path_recorder, maint_wait):
         if os.path.exists(key):
             dirs[key] = key
 
-    conn, cursor = wib_db.transaction_begin()
+    with wib_db.transaction() as cursor:
+        # Traverse all known dirs, check if missing rankings are due to moved files
+        for key in dirs.keys():
+            fileinfos = traverse_all_files(key, [], "", 0)
+            for (file, _) in fileinfos:
+                # Is there a ranking for this full filepath
+                ranking_by_file = wib_db.get_ranking_by_file(cursor, file)
+                if ranking_by_file is None:
+                    name = os.path.basename(file)
+                    (ranking_by_name, alternate_hash) = wib_db.get_ranking_by_name(cursor, name)
+                    # Is there a ranking only for the filename
+                    if ranking_by_name is not None:
+                        hash = wib_db.get_hash(file)
+                        (alternate_file, alternate_ranking) = ranking_by_name
+                        if alternate_ranking is not None and alternate_hash is not None:
+                            (alternate_hash,) = alternate_hash
+                        # Does the found filename's file have no hash or the same hash?
+                        if alternate_hash is None or hash == alternate_hash:
+                            if os.path.exists(alternate_file):
+                                # Insert ranking as a copy of the found filename's ranking
+                                wib_db.insert_ranking(cursor, file, alternate_ranking, hash)
+                            else:
+                                # Replace ranking of the found filename
+                                wib_db.replace_ranking(cursor, file, alternate_file, hash)
 
-    # Traverse all known dirs, check if missing rankings are due to moved files
-    for key in dirs.keys():
-        fileinfos = traverse_all_files(key, [], "", 0)
-        for (file, _) in fileinfos:
-            # Is there a ranking for this full filepath
-            ranking_by_file = wib_db.get_ranking_by_file(cursor, file)
-            if ranking_by_file is None:
-                name = os.path.basename(file)
-                (ranking_by_name, alternate_hash) = wib_db.get_ranking_by_name(cursor, name)
-                # Is there a ranking only for the filename
-                if ranking_by_name is not None:
-                    hash = wib_db.get_hash(file)
-                    (alternate_file, alternate_ranking) = ranking_by_name
-                    if alternate_ranking is not None and alternate_hash is not None:
-                        (alternate_hash,) = alternate_hash
-                    # Does the found filename's file have no hash or the same hash?
-                    if alternate_hash is None or hash == alternate_hash:
-                        if os.path.exists(alternate_file):
-                            # Insert ranking as a copy of the found filename's ranking
-                            wib_db.insert_ranking(cursor, file, alternate_ranking, hash)
-                        else:
-                            # Replace ranking of the found filename
-                            wib_db.replace_ranking(cursor, file, alternate_file, hash)
-
-    wib_db.transaction_end(conn, cursor)
     maint_last_msg = "Rankings reapplied"
 
     return maint_wait, maint_last_msg
@@ -743,73 +737,71 @@ def get_all_images(dir_name, sort_by, sort_order, keyword, tab_base_tag_box, img
         filenames = [finfo[0] for finfo in fileinfos]
     
     if opts.image_browser_scan_exif:
-        conn, cursor = wib_db.transaction_begin()
-        if len(exif_keyword) != 0:
-            if use_regex:
-                regex_error = False
+        with wib_db.transaction() as cursor:
+            if len(exif_keyword) != 0:
+                if use_regex:
+                    regex_error = False
+                    try:
+                        test_re = re.compile(exif_keyword, re.DOTALL)
+                    except re.error as e:
+                        regex_error = True
+                        print(f"Regex error: {e}")
+                if (use_regex and not regex_error) or not use_regex:
+                    if negative_prompt_search == "Yes":
+                        fileinfos = [x for x in fileinfos if exif_search(exif_keyword, exif_cache[x[0]], use_regex, case_sensitive)]
+                    else:
+                        result = []
+                        for file_info in fileinfos:
+                            file_name = file_info[0]
+                            file_exif = exif_cache[file_name]
+                            file_exif_lc = file_exif.lower()
+                            start_index = file_exif_lc.find(np)
+                            end_index = file_exif.find("\n", start_index)
+                            if negative_prompt_search == "Only":
+                                start_index = start_index + len(np)
+                                sub_string = file_exif[start_index:end_index].strip()
+                                if exif_search(exif_keyword, sub_string, use_regex, case_sensitive):
+                                    result.append(file_info)
+                            else:
+                                sub_string = file_exif[start_index:end_index].strip()
+                                file_exif = file_exif.replace(sub_string, "")
+                                
+                                if exif_search(exif_keyword, file_exif, use_regex, case_sensitive):
+                                    result.append(file_info)
+                        fileinfos = result
+                    filenames = [finfo[0] for finfo in fileinfos]
+            wib_db.fill_work_files(cursor, fileinfos)
+            if len(aes_filter_min) != 0 or len(aes_filter_max) != 0:
                 try:
-                    test_re = re.compile(exif_keyword, re.DOTALL)
-                except re.error as e:
-                    regex_error = True
-                    print(f"Regex error: {e}")
-            if (use_regex and not regex_error) or not use_regex:
-                if negative_prompt_search == "Yes":
-                    fileinfos = [x for x in fileinfos if exif_search(exif_keyword, exif_cache[x[0]], use_regex, case_sensitive)]
-                else:
-                    result = []
-                    for file_info in fileinfos:
-                        file_name = file_info[0]
-                        file_exif = exif_cache[file_name]
-                        file_exif_lc = file_exif.lower()
-                        start_index = file_exif_lc.find(np)
-                        end_index = file_exif.find("\n", start_index)
-                        if negative_prompt_search == "Only":
-                            start_index = start_index + len(np)
-                            sub_string = file_exif[start_index:end_index].strip()
-                            if exif_search(exif_keyword, sub_string, use_regex, case_sensitive):
-                                result.append(file_info)
-                        else:
-                            sub_string = file_exif[start_index:end_index].strip()
-                            file_exif = file_exif.replace(sub_string, "")
-                            
-                            if exif_search(exif_keyword, file_exif, use_regex, case_sensitive):
-                                result.append(file_info)
-                    fileinfos = result
+                    aes_filter_min_num = float(aes_filter_min)
+                except ValueError:
+                    aes_filter_min_num = sys.float_info.min
+                try:
+                    aes_filter_max_num = float(aes_filter_max)
+                except ValueError:
+                    aes_filter_max_num = sys.float_info.max
+
+                fileinfos = wib_db.filter_aes(cursor, fileinfos, aes_filter_min_num, aes_filter_max_num)
+                filenames = [finfo[0] for finfo in fileinfos]   
+            if ranking_filter != "All":
+                ranking_filter_min_num = 1
+                ranking_filter_max_num = 5
+                if ranking_filter == "Min-max":
+                    try:
+                        ranking_filter_min_num = int(ranking_filter_min)
+                    except ValueError:
+                        ranking_filter_min_num = 0
+                    try:
+                        ranking_filter_max_num = int(ranking_filter_max)
+                    except ValueError:
+                        ranking_filter_max_num = 0
+                    if ranking_filter_min_num < 1:
+                        ranking_filter_min_num = 1
+                    if ranking_filter_max_num < 1 or ranking_filter_max_num > 5:
+                        ranking_filter_max_num = 5
+
+                fileinfos = wib_db.filter_ranking(cursor, fileinfos, ranking_filter, ranking_filter_min_num, ranking_filter_max_num)
                 filenames = [finfo[0] for finfo in fileinfos]
-        wib_db.fill_work_files(cursor, fileinfos)
-        if len(aes_filter_min) != 0 or len(aes_filter_max) != 0:
-            try:
-                aes_filter_min_num = float(aes_filter_min)
-            except ValueError:
-                aes_filter_min_num = sys.float_info.min
-            try:
-                aes_filter_max_num = float(aes_filter_max)
-            except ValueError:
-                aes_filter_max_num = sys.float_info.max
-
-            fileinfos = wib_db.filter_aes(cursor, fileinfos, aes_filter_min_num, aes_filter_max_num)
-            filenames = [finfo[0] for finfo in fileinfos]   
-        if ranking_filter != "All":
-            ranking_filter_min_num = 1
-            ranking_filter_max_num = 5
-            if ranking_filter == "Min-max":
-                try:
-                    ranking_filter_min_num = int(ranking_filter_min)
-                except ValueError:
-                    ranking_filter_min_num = 0
-                try:
-                    ranking_filter_max_num = int(ranking_filter_max)
-                except ValueError:
-                    ranking_filter_max_num = 0
-                if ranking_filter_min_num < 1:
-                    ranking_filter_min_num = 1
-                if ranking_filter_max_num < 1 or ranking_filter_max_num > 5:
-                    ranking_filter_max_num = 5
-
-            fileinfos = wib_db.filter_ranking(cursor, fileinfos, ranking_filter, ranking_filter_min_num, ranking_filter_max_num)
-            filenames = [finfo[0] for finfo in fileinfos]
-        
-        wib_db.transaction_end(conn, cursor)
     
     if sort_by == "date":
         if sort_order == up_symbol:
@@ -905,11 +897,11 @@ def get_image_thumbnail(image_list):
 
 def set_tooltip_info(image_list):
     image_browser_img_info = {}
-    conn, cursor = wib_db.transaction_begin()
-    for filename in image_list:
-        x, y = wib_db.select_x_y(cursor, filename)
-        image_browser_img_info[filename] = {"x": x, "y": y}
-    wib_db.transaction_end(conn, cursor)
+    with wib_db.transaction() as cursor:
+        for filename in image_list:
+            x, y = wib_db.select_x_y(cursor, filename)
+            image_browser_img_info[filename] = {"x": x, "y": y}
+
     image_browser_img_info_json = json.dumps(image_browser_img_info)
     return image_browser_img_info_json
 
