@@ -495,7 +495,7 @@ def cache_exif(fileinfos):
                             raise
                     if allExif:
                         exif_cache[fi_info[0]] = allExif
-                        wib_db.update_exif_data(conn, fi_info[0], allExif)
+                        wib_db.update_exif_data(cursor, fi_info[0], allExif)
                         new_exif = new_exif + 1
 
                         m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", allExif, flags=re.IGNORECASE)
@@ -504,7 +504,7 @@ def cache_exif(fileinfos):
                         else:
                             aes_value = "0"
                         aes_cache[fi_info[0]] = aes_value
-                        wib_db.update_exif_data_by_key(conn, fi_info[0], "aesthetic_score", aes_value)
+                        wib_db.update_exif_data_by_key(cursor, fi_info[0], "aesthetic_score", aes_value)
                         new_aes = new_aes + 1
                     else:
                         try:
@@ -514,7 +514,7 @@ def cache_exif(fileinfos):
                                 for line in f:
                                     geninfo += line
                             exif_cache[fi_info[0]] = geninfo
-                            wib_db.update_exif_data_by_key(conn, fi_info[0], geninfo)
+                            wib_db.update_exif_data_by_key(cursor, fi_info[0], geninfo)
                             new_exif = new_exif + 1
 
                             m = re.search("(?:aesthetic_score:|Score:) (\d+.\d+)", geninfo, flags=re.IGNORECASE)
@@ -523,19 +523,19 @@ def cache_exif(fileinfos):
                             else:
                                 aes_value = "0"
                             aes_cache[fi_info[0]] = aes_value
-                            wib_db.update_exif_data_by_key(conn, fi_info[0], "aesthetic_score", aes_value)
+                            wib_db.update_exif_data_by_key(cursor, fi_info[0], "aesthetic_score", aes_value)
                             new_aes = new_aes + 1
                         except Exception:
                             logger.warning(f"cache_exif: No EXIF in image or txt file for {fi_info[0]}")
                             # Saved with defaults to not scan it again next time
                             exif_cache[fi_info[0]] = "0"
                             allExif = "0"
-                            wib_db.update_exif_data(conn, fi_info[0], allExif)
+                            wib_db.update_exif_data(cursor, fi_info[0], allExif)
                             new_exif = new_exif + 1
 
                             aes_value = "0"
                             aes_cache[fi_info[0]] = aes_value
-                            wib_db.update_exif_data_by_key(conn, fi_info[0], "aesthetic_score", aes_value)
+                            wib_db.update_exif_data_by_key(cursor, fi_info[0], "aesthetic_score", aes_value)
                             new_aes = new_aes + 1
 
     if yappi_do:
