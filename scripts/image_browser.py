@@ -1140,7 +1140,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                             first_page = gr.Button("First Page", elem_id=f"{tab.base_tag}_control_image_browser_first_page")
                         with gr.Column(scale=2, min_width=20):
                             prev_page = gr.Button("Prev Page", elem_id=f"{tab.base_tag}_control_image_browser_prev_page")
-                        with gr.Row(scale=2, min_width=20, elem_classes="page-index-panel"):
+                        with gr.Row(elem_classes="page-index-panel"):
                             page_index = gr.Number(value=1, label="Page Index", elem_id=f"{tab.base_tag}_control_image_browser_page_index")
                             refresh_index_button = ToolButton(value=refresh_symbol, elem_id=f"{tab.base_tag}_control_image_browser_refresh_index")
                         with gr.Column(scale=2, min_width=20):
