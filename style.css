@@ -87,3 +87,8 @@ button[id$='_image_browser_del_img_btn'] {
 #tab_image_browser .page-index-panel > div > div {
   min-width: auto
 }
+
+#tab_image_browser .gradio-dropdown ul.options li.item {
+  white-space: wrap;
+  word-break: break-all
+}
