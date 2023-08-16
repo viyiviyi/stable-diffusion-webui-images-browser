@@ -1240,7 +1240,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                                 else:
                                     sendto_controlnet_type = gr.Textbox(value="multiple", visible=False)
                     with gr.Row(elem_id=f"{tab.base_tag}_image_browser_to_dir_panel", visible=False) as to_dir_panel:
-                        with gr.Box():
+                        with gr.Blocks():
                             with gr.Row():
                                 to_dir_path = gr.Textbox(label="Directory path")
                             with gr.Row():
