@@ -1223,6 +1223,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                             with gr.Row(visible=controlnet):
                                 sendto_controlnet_txt2img = gr.Button("Send to txt2img ControlNet", visible=controlnet)
                                 sendto_controlnet_img2img = gr.Button("Send to img2img ControlNet", visible=controlnet)
+                            with gr.Row(visible=controlnet):
                                 controlnet_max = opts.data.get("control_net_max_models_num", 1)
                                 sendto_controlnet_num = gr.Dropdown([str(i) for i in range(controlnet_max)], label="ControlNet number", value="0", interactive=True, visible=(controlnet and controlnet_max > 1))
                                 if controlnet_max is None:
@@ -1232,7 +1233,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                                 else:
                                     sendto_controlnet_type = gr.Textbox(value="multiple", visible=False)
                     with gr.Row(elem_id=f"{tab.base_tag}_image_browser_to_dir_panel", visible=False) as to_dir_panel:
-                        with gr.Box():
+                        with gr.Column():
                             with gr.Row():
                                 to_dir_path = gr.Textbox(label="Directory path")
                             with gr.Row():
