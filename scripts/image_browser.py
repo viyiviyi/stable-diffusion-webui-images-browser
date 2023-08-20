@@ -997,9 +997,10 @@ def show_image_info(tab_base_tag_box, num, page_index, filenames, turn_page_swit
             if opts.image_browser_use_thumbnail:
                 image_gallery = [image['name'] for image in image_gallery]
                 image_gallery[int(num)] = filenames[file_num]
-                return file, tm, num, file, turn_page_switch, info, image_gallery
-            else:
-                return file, tm, num, file, turn_page_switch, info
+    if opts.image_browser_use_thumbnail:
+        return file, tm, num, file, turn_page_switch, info, image_gallery
+    else:
+        return file, tm, num, file, turn_page_switch, info
 
 def change_dir(img_dir, path_recorder, load_switch, img_path_browser, img_path_depth, img_path):
     warning = None

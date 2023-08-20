@@ -95,8 +95,10 @@ const image_browser_click_image = async function() {
     const container = gradioApp().getElementById(tab_base_tag + "_image_browser_container")
     let child = this
     let index = 0
-    while((child = child.previousSibling) != null) {
-        index = index + 1
+    while ((child = child.previousSibling) != null) {
+        if (child.nodeType === Node.ELEMENT_NODE) {
+            index = index + 1
+        }
     }
     const set_btn = container.querySelector(".image_browser_set_index")
     let curr_idx
