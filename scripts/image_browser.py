@@ -1137,16 +1137,17 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
             with gr.Row():    
                 with gr.Column(scale=2):    
                     with gr.Row(elem_id=f"{tab.base_tag}_image_browser_gallery_controls") as gallery_controls_panel:
-                        with gr.Column(scale=2, min_width=20):
+                        with gr.Column(scale=4, min_width=20):
                             first_page = gr.Button("First Page", elem_id=f"{tab.base_tag}_control_image_browser_first_page")
-                        with gr.Column(scale=2, min_width=20):
+                        with gr.Column(scale=4, min_width=20):
                             prev_page = gr.Button("Prev Page", elem_id=f"{tab.base_tag}_control_image_browser_prev_page")
                         with gr.Row(elem_classes="page-index-panel"):
                             page_index = gr.Number(value=1, label="Page Index", elem_id=f"{tab.base_tag}_control_image_browser_page_index")
+                        with gr.Column(scale=1, min_width=20, elem_classes="refresh-index-panel"):
                             refresh_index_button = ToolButton(value=refresh_symbol, elem_id=f"{tab.base_tag}_control_image_browser_refresh_index")
-                        with gr.Column(scale=2, min_width=20):
+                        with gr.Column(scale=4, min_width=20):
                             next_page = gr.Button("Next Page", elem_id=f"{tab.base_tag}_control_image_browser_next_page")
-                        with gr.Column(scale=2, min_width=20):
+                        with gr.Column(scale=4, min_width=20):
                             end_page = gr.Button("End Page", elem_id=f"{tab.base_tag}_control_image_browser_end_page") 
                     with gr.Row(visible=False) as ranking_panel:
                         with gr.Column(scale=1, min_width=20):

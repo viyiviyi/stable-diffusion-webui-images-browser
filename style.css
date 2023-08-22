@@ -54,21 +54,21 @@ button[id$='_image_browser_del_img_btn'] {
 #tab_image_browser button[id$='_control_image_browser_prev_page'],
 #tab_image_browser button[id$='_control_image_browser_next_page'],
 #tab_image_browser button[id$='_control_image_browser_end_page'] {
-  cursor: pointer !important
+  cursor: pointer !important;
 }
 
 #tab_image_browser div[id$='_control_image_browser_page_index'],
 #tab_image_browser .right-column-panel {
-  margin-top: calc(var(--body-text-size) * var(--line-sm) * -1) !important
+  margin-top: calc(var(--body-text-size) * var(--line-sm) * -1) !important;
 }
 
 #tab_image_browser .sort-panel button {
   margin-top: calc(var(--body-text-size) * var(--line-sm));
-  align-self: center
+  align-self: center;
 }
 
 #tab_image_browser .ranking-filter-input input:disabled{
-  cursor: not-allowed
+  cursor: not-allowed;
 }
 
 #tab_image_browser .thumbnails .thumbnail-item:first-child{
@@ -85,10 +85,14 @@ button[id$='_image_browser_del_img_btn'] {
 }
 
 #tab_image_browser .page-index-panel > div > div {
-  min-width: auto
+  min-width: auto;
+}
+
+#tab_image_browser .refresh-index-panel > div {
+  margin-top: var(--spacing-sm);
 }
 
 #tab_image_browser .gradio-dropdown ul.options li.item {
   white-space: wrap;
-  word-break: break-all
+  word-break: break-all;
 }
