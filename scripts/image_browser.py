@@ -1452,8 +1452,8 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
         show_progress=opts.image_browser_show_progress
     )
     img_path_subdirs.change(
-        fn=change_dir, 
-        inputs=[warning_box, img_path_subdirs, path_recorder, load_switch, img_path_browser, img_path_depth, img_path], 
+        fn=change_dir_dropdown, 
+        inputs=[img_path_subdirs, path_recorder, load_switch, img_path_browser, img_path_depth], 
         outputs=change_dir_outputs,
         show_progress=opts.image_browser_show_progress
     )
