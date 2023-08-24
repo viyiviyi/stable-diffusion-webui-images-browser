@@ -273,7 +273,7 @@ def sort_order_flip(turn_page_switch, sort_order):
         sort_order = down_symbol
     else:
         sort_order = up_symbol
-    return 1, -turn_page_switch, sort_order
+    return 1, turn_page_switch + 1, sort_order
 
 def read_path_recorder():
     path_recorder = wib_db.load_path_recorder()
@@ -320,8 +320,13 @@ def ranking_filter_settings(page_index, turn_page_switch, ranking_filter):
     else:
         interactive = False
     page_index = 1
-    turn_page_switch = -turn_page_switch
-    return page_index, turn_page_switch, gr.update(interactive=interactive), gr.update(interactive=interactive)
+    return page_index, turn_page_switch + 1, gr.update(interactive=interactive), gr.update(interactive=interactive)
+
+def warning_box_visibility(warning_box):
+    if warning_box == "":
+        return gr.update(value=warning_box, visible=False)
+    else:
+        return gr.update(value=warning_box, visible=True)
 
 def reduplicative_file_move(src, dst):
     def same_name_file(basename, path):
@@ -373,7 +378,7 @@ def save_image(file_name, filenames, page_index, turn_page_switch, dest_path):
         if not opts.image_browser_copy_image:
             # Force page refresh with checking filenames
             filenames = []
-            turn_page_switch = -turn_page_switch
+            turn_page_switch += 1
     else:
         message = "<div style='color:#999'>Image not found (may have been already moved)</div>"
 
@@ -421,7 +426,7 @@ def delete_image(tab_base_tag_box, delete_num, name, filenames, image_index, vis
                 refresh = True
 
     if refresh:
-        turn_page_switch = -turn_page_switch
+        turn_page_switch += 1
         select_image = False
     else:
         select_image = True
@@ -938,7 +943,7 @@ def get_image_page(img_path, page_index, filenames, keyword, sort_by, sort_order
     visible_num = num_of_imgs_per_page if  idx_frm + num_of_imgs_per_page < length else length % num_of_imgs_per_page 
     visible_num = num_of_imgs_per_page if visible_num == 0 else visible_num
 
-    load_info = "<div style='color:#999' align='center'>"
+    load_info = "<div style='color:#999; font-size:10px' align='center'>"
     load_info += f"{length} images in this directory, divided into {int((length + 1) // num_of_imgs_per_page  + 1)} pages"
     load_info += "</div>"
 
@@ -967,7 +972,7 @@ def show_image_info(tab_base_tag_box, num, page_index, filenames, turn_page_swit
     if len(filenames) == 0:
         # This should only happen if webui was stopped and started again and the user clicks on one of the still displayed images.
         # The state with the filenames will be empty then. In that case we return None to prevent further errors and force a page refresh.
-        turn_page_switch = -turn_page_switch
+        turn_page_switch += 1
         file = None
         tm =  None
         info = ""
@@ -976,7 +981,7 @@ def show_image_info(tab_base_tag_box, num, page_index, filenames, turn_page_swit
             (page_index - 1) * num_of_imgs_per_page)
         if file_num >= len(filenames):
             # Last image to the right is deleted, page refresh
-            turn_page_switch = -turn_page_switch
+            turn_page_switch += 1
             file = None
             tm =  None
             info = ""
@@ -1002,29 +1007,47 @@ def show_image_info(tab_base_tag_box, num, page_index, filenames, turn_page_swit
     else:
         return file, tm, num, file, turn_page_switch, info
 
-def change_dir(img_dir, path_recorder, load_switch, img_path_browser, img_path_depth, img_path):
-    warning = None
-    img_path, _ = pure_path(img_path)
+def warning_style(warning):
+    warning_html = f"<div style='color:red'>{warning}</div>"
+    return warning_html
+
+def change_dir_textbox(img_dir, path_recorder, load_switch, img_path_browser, img_path_depth):
+    warning, main_panel, img_path_browser, path_recorder, load_switch, img_path, img_path_depth = change_dir("textbox", img_dir, path_recorder, load_switch, img_path_browser, img_path_depth)
+    return warning, gr.update(visible=main_panel), img_path_browser, path_recorder, load_switch, img_path, img_path_depth
+
+def change_dir_dropdown(img_dir, path_recorder, load_switch, img_path_browser, img_path_depth):
+    warning, main_panel, img_path_browser, path_recorder, load_switch, img_path, img_path_depth = change_dir("dropdown", img_dir, path_recorder, load_switch, img_path_browser, img_path_depth)
+    return warning, gr.update(visible=main_panel), img_path_browser, path_recorder, load_switch, img_path, img_path_depth
+
+def change_dir(change_dir_type, img_dir, path_recorder, load_switch, img_path_browser, img_path_depth):
+    warning = ""
     img_path_depth_org = img_path_depth
-    if img_dir == none_select:
-        return warning, gr.update(visible=False), img_path_browser, path_recorder, load_switch, img_path, img_path_depth
-    else:
-        img_dir, img_path_depth = pure_path(img_dir)
-        if warning is None:
+
+    # Not selected with dropdown and nothing in textbox
+    if change_dir_type == "textbox" and img_dir == "":
+        warning = "Images directory is empty"   
+        return warning_style(warning), False, img_path_browser, path_recorder, load_switch, img_dir, img_path_depth_org
+
+    # Selected with dropdown, but nothing actually selected
+    if change_dir_type == "dropdown" and img_dir == none_select:
+        return warning, img_path_browser, True, path_recorder, load_switch, img_dir, img_path_depth_org
+
+    img_dir, img_path_depth = pure_path(img_dir)
+    try:
+        if os.path.exists(img_dir):
             try:
-                if os.path.exists(img_dir):
-                    try:
-                        f = os.listdir(img_dir)                
-                    except:
-                        warning = f"'{img_dir} is not a directory"
-                else:
-                    warning = "The directory does not exist"
+                f = os.listdir(img_dir)                
             except:
-                warning = "The format of the directory is incorrect"   
-        if warning is None: 
-            return "", gr.update(visible=True), img_path_browser, path_recorder, img_dir, img_dir, img_path_depth
+                warning = f"'{img_dir} is not a directory"
         else:
-            return warning, gr.update(visible=False), img_path_browser, path_recorder, load_switch, img_path, img_path_depth_org
+            warning = "The directory does not exist"
+    except:
+        warning = "The format of the directory is incorrect"   
+    if warning == "":
+        load_switch += 1
+        return warning, True, img_path_browser, path_recorder, load_switch, img_dir, img_path_depth
+    else:
+        return warning_style(warning), False, img_path_browser, path_recorder, load_switch, img_dir, img_path_depth_org
 
 def update_move_text_one(btn):
     btn_text = " ".join(btn.split()[1:])
@@ -1108,7 +1131,8 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
     with gr.Row():                 
         path_recorder = gr.State(path_recorder)
         with gr.Column(scale=10):
-            warning_box = gr.HTML("<p>&nbsp", elem_id=f"{tab.base_tag}_image_browser_warning_box")
+            warning_box = gr.HTML("", elem_id=f"{tab.base_tag}_image_browser_warning_box", elem_classes="imageBrowserWarning")
+
         with gr.Column(scale=5, visible=(tab.name==favorite_tab_name)):
             gr.HTML(f"<p>Favorites path from settings: {opts.outdir_save}")
 
@@ -1257,9 +1281,11 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                         image_page_list = gr.Textbox(elem_id=f"{tab.base_tag}_image_browser_image_page_list")
                         info1 = gr.Textbox()
                         info2 = gr.Textbox()
-                        load_switch = gr.Textbox(value="load_switch", label="load_switch")
-                        to_dir_load_switch = gr.Textbox(value="to dir load_switch", label="to_dir_load_switch")
+                        # turn_page_switch: reload page at thumbnail overview, requests add 1 to trigger change-event
                         turn_page_switch = gr.Number(value=1, label="turn_page_switch")
+                        load_switch = gr.Number(value=1, label="load_switch")
+                        to_dir_load_switch = gr.Number(value=1, label="to_dir_load_switch")
+                        to_dir_load_switch_panel = gr.Checkbox(value=True, label="to_dir_load_switch_panel")
                         select_image = gr.Number(value=1)
                         img_path_add = gr.Textbox(value="add")
                         img_path_remove = gr.Textbox(value="remove")
@@ -1360,10 +1386,9 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
             override_hidden.add(hidden_component_map[item])
 
     change_dir_outputs = [warning_box, main_panel, img_path_browser, path_recorder, load_switch, img_path, img_path_depth]
-    img_path.submit(change_dir, inputs=[img_path, path_recorder, load_switch, img_path_browser, img_path_depth, img_path], outputs=change_dir_outputs, show_progress=opts.image_browser_show_progress)
-    img_path_browser.change(change_dir, inputs=[img_path_browser, path_recorder, load_switch, img_path_browser, img_path_depth, img_path], outputs=change_dir_outputs, show_progress=opts.image_browser_show_progress)
-    # img_path_browser.change(browser2path, inputs=[img_path_browser], outputs=[img_path])
-    to_dir_saved.change(change_dir, inputs=[to_dir_saved, path_recorder, to_dir_load_switch, to_dir_saved, img_path_depth, to_dir_path], outputs=[warning_box, main_panel, to_dir_saved, path_recorder, to_dir_load_switch, to_dir_path, img_path_depth], show_progress=opts.image_browser_show_progress)
+    img_path.submit(change_dir_textbox, inputs=[img_path, path_recorder, load_switch, img_path_browser, img_path_depth], outputs=change_dir_outputs, show_progress=opts.image_browser_show_progress)
+    img_path_browser.change(change_dir_dropdown, inputs=[img_path_browser, path_recorder, load_switch, img_path_browser, img_path_depth], outputs=change_dir_outputs, show_progress=opts.image_browser_show_progress)
+    to_dir_saved.change(change_dir_dropdown, inputs=[to_dir_saved, path_recorder, to_dir_load_switch, to_dir_saved, img_path_depth], outputs=[warning_box, to_dir_load_switch_panel, to_dir_saved, path_recorder, to_dir_load_switch, to_dir_path, img_path_depth], show_progress=opts.image_browser_show_progress)
 
     #delete
     delete.click(
@@ -1381,22 +1406,22 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
 
     to_dir_btn.click(save_image, inputs=[img_file_name, filenames, page_index, turn_page_switch, to_dir_path], outputs=[collected_warning, filenames, page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
     #turn page
-    first_page.click(lambda s:(1, -s) , inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    next_page.click(lambda p, s: (p + 1, -s), inputs=[page_index, turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    prev_page.click(lambda p, s: (p - 1, -s), inputs=[page_index, turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    end_page.click(lambda s: (-1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    load_switch.change(lambda s:(1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    filename_keyword_search.submit(lambda s:(1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    exif_keyword_search.submit(lambda s:(1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    ranking_filter_min.submit(lambda s:(1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    ranking_filter_max.submit(lambda s:(1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    aes_filter_min.submit(lambda s:(1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    aes_filter_max.submit(lambda s:(1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    sort_by.change(lambda s:(1, -s), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    page_index.submit(lambda s: -s, inputs=[turn_page_switch], outputs=[turn_page_switch], show_progress=opts.image_browser_show_progress)
-    renew_page.click(lambda s: -s, inputs=[turn_page_switch], outputs=[turn_page_switch], show_progress=opts.image_browser_show_progress)
-    refresh_index_button.click(lambda p, s:(p, -s), inputs=[page_index, turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
-    img_path_depth.change(lambda s: -s, inputs=[turn_page_switch], outputs=[turn_page_switch], show_progress=opts.image_browser_show_progress)
+    first_page.click(lambda s:(1, s + 1) , inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    next_page.click(lambda p, s: (p + 1, s + 1), inputs=[page_index, turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    prev_page.click(lambda p, s: (p - 1, s + 1), inputs=[page_index, turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    end_page.click(lambda s: (-1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    load_switch.change(lambda s:(1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    filename_keyword_search.submit(lambda s:(1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    exif_keyword_search.submit(lambda s:(1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    ranking_filter_min.submit(lambda s:(1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    ranking_filter_max.submit(lambda s:(1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    aes_filter_min.submit(lambda s:(1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    aes_filter_max.submit(lambda s:(1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    sort_by.change(lambda s:(1, s + 1), inputs=[turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    page_index.submit(lambda s: s + 1, inputs=[turn_page_switch], outputs=[turn_page_switch], show_progress=opts.image_browser_show_progress)
+    renew_page.click(lambda s: s + 1, inputs=[turn_page_switch], outputs=[turn_page_switch], show_progress=opts.image_browser_show_progress)
+    refresh_index_button.click(lambda p, s:(p, s + 1), inputs=[page_index, turn_page_switch], outputs=[page_index, turn_page_switch], show_progress=opts.image_browser_show_progress)
+    img_path_depth.change(lambda s: s + 1, inputs=[turn_page_switch], outputs=[turn_page_switch], show_progress=opts.image_browser_show_progress)
 
     hide_on_thumbnail_view = [delete_panel, button_panel, ranking_panel, to_dir_panel, info_add_panel]
 
@@ -1412,6 +1437,12 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
         outputs=[page_index, turn_page_switch, ranking_filter_min, ranking_filter_max],
         show_progress=opts.image_browser_show_progress
     )
+    warning_box.change(
+        fn=warning_box_visibility,
+        inputs=[warning_box],
+        outputs=[warning_box],
+        show_progress=opts.image_browser_show_progress
+    )
 
     # Others
     img_path_subdirs_button.click(
@@ -1422,7 +1453,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
     )
     img_path_subdirs.change(
         fn=change_dir, 
-        inputs=[img_path_subdirs, path_recorder, load_switch, img_path_browser, img_path_depth, img_path], 
+        inputs=[warning_box, img_path_subdirs, path_recorder, load_switch, img_path_browser, img_path_depth, img_path], 
         outputs=change_dir_outputs,
         show_progress=opts.image_browser_show_progress
     )

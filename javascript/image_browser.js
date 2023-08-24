@@ -57,10 +57,12 @@ async function image_browser_start_it_up() {
         control.style.cursor = "not-allowed"
         control.style.opacity = "0.65"
     })
+    /*
     let warnings = container.querySelectorAll('[id*="_warning_box"]')
     warnings.forEach(function(warning) {
         warning.innerHTML = '<p style="font-weight: bold;">Waiting for webui...'
     })
+    */
 
     image_browser_wait_for_webui()
     if (image_browser_debug) console.log("image_browser_start_it_up:end")
@@ -537,10 +539,12 @@ async function image_browser_activate_controls() {
         control.style.cursor = "default"
         control.style.opacity = "1"
     })
+    /*
     let warnings = container.querySelectorAll('[id*="_warning_box"]')
     warnings.forEach(function(warning) {
-        warning.innerHTML = "<p>&nbsp"
+        warning.innerHTML = ""
     })
+    */
     if (image_browser_debug) console.log("image_browser_activate_controls:end")
 }
 
