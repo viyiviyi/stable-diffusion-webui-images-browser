@@ -1197,14 +1197,14 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                         sort_order = ToolButton(value=down_symbol)
                     with gr.Row() as filename_search_panel:
                         filename_keyword_search = gr.Textbox(value="", label="Filename keyword search")
-                    with gr.Blocks() as exif_search_panel:
+                    with gr.Box() as exif_search_panel:
                         with gr.Row():
                                 exif_keyword_search = gr.Textbox(value="", label="EXIF keyword search")
                                 negative_prompt_search = gr.Radio(value="No", choices=["No", "Yes", "Only"], label="Search negative prompt", interactive=True)
                         with gr.Row(elem_classes="exif-search-panel"):
                                 case_sensitive = gr.Checkbox(value=False, label="case sensitive")
                                 use_regex = gr.Checkbox(value=False, label=r"regex - e.g. ^(?!.*Hires).*$")
-                    with gr.Blocks() as ranking_filter_panel:
+                    with gr.Box() as ranking_filter_panel:
                         with gr.Row():
                             ranking_filter = gr.Radio(value="All", choices=["All", "1", "2", "3", "4", "5", "None", "Min-max"], label="Ranking filter", interactive=True)
                         with gr.Row():
@@ -1215,7 +1215,7 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                         with gr.Row():
                             with gr.Column():
                                 gr.HTML("<p class='no-gap-top mb-0 text-subdued'>Choose Min-max to activate these controls<p>")
-                    with gr.Blocks() as aesthetic_score_filter_panel:
+                    with gr.Box() as aesthetic_score_filter_panel:
                         with gr.Row():
                             aes_filter_min = gr.Textbox(value="", label="Minimum score")
                             aes_filter_max = gr.Textbox(value="", label="Maximum score")

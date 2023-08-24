@@ -37,7 +37,6 @@ button[id$='_image_browser_del_img_btn'] {
   height: auto !important;
 }
 
-#tab_image_browser .exif-search-panel,
 #tab_image_browser .no-gap-top {
   margin-top: calc(var(--layout-gap) * -1);
 }
@@ -95,4 +94,8 @@ button[id$='_image_browser_del_img_btn'] {
 #tab_image_browser .gradio-dropdown ul.options li.item {
   white-space: wrap;
   word-break: break-all;
+}
+
+#tab_image_browser .gradio-box {
+  padding: 5px !important;
 }
