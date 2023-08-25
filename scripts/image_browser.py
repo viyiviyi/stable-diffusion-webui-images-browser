@@ -1179,7 +1179,11 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                         with gr.Column(scale=4, min_width=20):
                             ranking = gr.Radio(choices=["1", "2", "3", "4", "5", "None"], label="Set ranking to", elem_id=f"{tab.base_tag}_control_image_browser_ranking", interactive=True)
                     with gr.Row():
-                        image_gallery = gr.Gallery(show_label=False, elem_id=f"{tab.base_tag}_image_browser_gallery").style(columns=opts.image_browser_page_columns, height=("max-content" if opts.image_browser_height_auto else None))
+                        gradio_new = "3.39.0"
+                        if version.parse(gr.__version__) < version.parse(gradio_new):
+                            image_gallery = gr.Gallery(show_label=False, elem_id=f"{tab.base_tag}_image_browser_gallery").style(columns=opts.image_browser_page_columns, height=("max-content" if opts.image_browser_height_auto else None))
+                        else:
+                            image_gallery = gr.Gallery(show_label=False, elem_id=f"{tab.base_tag}_image_browser_gallery", columns=opts.image_browser_page_columns, height=("max-content" if opts.image_browser_height_auto else None))
                     with gr.Row() as delete_panel:
                         with gr.Column(scale=1):
                             delete_num = gr.Number(value=1, interactive=True, label="delete next", elem_id=f"{tab.base_tag}_image_browser_del_num")
