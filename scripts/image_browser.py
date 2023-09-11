@@ -1254,7 +1254,10 @@ def create_tab(tab: ImageBrowserTab, current_gr_tab: gr.Tab):
                                 sendto_controlnet_txt2img = gr.Button("Send to txt2img ControlNet", visible=controlnet)
                                 sendto_controlnet_img2img = gr.Button("Send to img2img ControlNet", visible=controlnet)
                             with gr.Row(visible=controlnet):
-                                controlnet_max = opts.data.get("control_net_max_models_num", 1)
+                                if "control_net_unit_count" in opts.data:
+                                    controlnet_max = opts.data.get("control_net_unit_count", 3)
+                                else:
+                                    controlnet_max = opts.data.get("control_net_max_models_num", 3)
                                 sendto_controlnet_num = gr.Dropdown([str(i) for i in range(controlnet_max)], label="ControlNet number", value="0", interactive=True, visible=(controlnet and controlnet_max > 1))
                                 if controlnet_max is None:
                                     sendto_controlnet_type = gr.Textbox(value="none", visible=False)
