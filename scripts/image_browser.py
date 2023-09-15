@@ -54,7 +54,7 @@ components_list = ["Sort by", "Filename keyword search", "EXIF keyword search", 
 
 num_of_imgs_per_page = 0
 loads_files_num = 0
-image_ext_list = [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".svg"]
+image_ext_list = [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".svg",'.abcd']
 exif_cache = {}
 aes_cache = {}
 none_select = "Nothing selected"
@@ -874,6 +874,8 @@ def get_image_thumbnail(image_list):
     for image_path in image_list:
         image_path_hash = hashlib.md5(image_path.encode("utf-8")).hexdigest()
         cache_image_path = os.path.join(optimized_cache, image_path_hash + ".jpg")
+        if image_path.endswith('.abcd'):
+            cache_image_path = os.path.join(optimized_cache, image_path_hash + ".abcd")
         if os.path.isfile(cache_image_path):
             thumbnail_list.append(cache_image_path)
         else:
